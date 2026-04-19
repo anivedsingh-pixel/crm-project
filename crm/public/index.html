@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sales CRM — Sign In</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #0d0f14; --surface: #161920; --surface2: #1e2230;
+    --border: rgba(255,255,255,0.07); --border2: rgba(255,255,255,0.1);
+    --text: #f0f2f7; --text2: #8b93a8; --text3: #555e75;
+    --accent: #3d7eff; --accent-glow: rgba(61,126,255,0.2);
+    --danger: #ff5c5c;
+  }
+  body {
+    font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text);
+    min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 1rem;
+  }
+  .login-box {
+    background: var(--surface); border: 1px solid var(--border2); border-radius: 16px;
+    padding: 2.5rem 2rem; width: 100%; max-width: 400px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+  }
+  .logo { font-size: 22px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 4px; }
+  .logo span { color: #ffd35a; }
+  .sub { font-size: 12px; color: var(--text2); margin-bottom: 2rem; letter-spacing: 1px; text-transform: uppercase; }
+  .field { margin-bottom: 14px; }
+  .field label { display: block; font-size: 12px; color: var(--text2); margin-bottom: 5px; }
+  .field input {
+    width: 100%; background: var(--surface2); border: 1px solid var(--border2);
+    border-radius: 8px; padding: 11px 13px; font-size: 14px;
+    font-family: 'DM Sans', sans-serif; color: var(--text); outline: none; transition: border-color 0.2s;
+  }
+  .field input:focus { border-color: var(--accent); }
+  .field input::placeholder { color: var(--text3); }
+  .btn {
+    width: 100%; background: var(--accent); color: #fff; border: none; border-radius: 8px;
+    padding: 12px; font-size: 14px; font-weight: 600; font-family: 'DM Sans', sans-serif;
+    cursor: pointer; margin-top: 6px; transition: background 0.2s;
+    box-shadow: 0 4px 16px var(--accent-glow);
+  }
+  .btn:hover { background: #5591ff; }
+  .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .msg {
+    padding: 10px 14px; border-radius: 8px; font-size: 13px; margin-bottom: 14px;
+    background: rgba(255,92,92,0.1); border: 1px solid rgba(255,92,92,0.3); color: #ff8a8a;
+    display: none;
+  }
+  .spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid rgba(255,255,255,0.3); border-top-color: #fff; border-radius: 50%; animation: spin 0.7s linear infinite; vertical-align: middle; margin-right: 6px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+<div class="login-box">
+  <div class="logo">Sales <span>CRM</span></div>
+  <div class="sub">Sign in to your account</div>
+  <div id="err-msg" class="msg"></div>
+  <div class="field">
+    <label>Email Address</label>
+    <input id="email" type="email" placeholder="you@company.com" autocomplete="email">
+  </div>
+  <div class="field">
+    <label>Password</label>
+    <input id="pass" type="password" placeholder="••••••••" autocomplete="current-password">
+  </div>
+  <button class="btn" id="login-btn" onclick="signIn()">Sign In</button>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyAw17UwyXNCav9vVnm01iEROMuY2ixepWg",
+  authDomain: "my-sales-crm-74879.firebaseapp.com",
+  projectId: "my-sales-crm-74879",
+  storageBucket: "my-sales-crm-74879.firebasestorage.app",
+  messagingSenderId: "686320620308",
+  appId: "1:686320620308:web:5f563090be8042c87be801"
+};
+
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.firestore();
+
+// If already logged in, go straight to the app
+auth.onAuthStateChanged(user => {
+  if (user) window.location.href = 'app.html';
+});
+
+function showError(msg) {
+  const el = document.getElementById('err-msg');
+  el.textContent = msg; el.style.display = 'block';
+}
+
+async function signIn() {
+  const email = document.getElementById('email').value.trim();
+  const pass = document.getElementById('pass').value;
+  if (!email || !pass) { showError('Please enter your email and password.'); return; }
+
+  const btn = document.getElementById('login-btn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> Signing in…';
+  document.getElementById('err-msg').style.display = 'none';
+
+  try {
+    await auth.signInWithEmailAndPassword(email, pass);
+    // onAuthStateChanged will redirect to app.html
+  } catch (e) {
+    const msgs = {
+      'auth/user-not-found': 'No account found with this email.',
+      'auth/wrong-password': 'Incorrect password.',
+      'auth/invalid-email': 'Invalid email address.',
+      'auth/too-many-requests': 'Too many attempts. Please try again later.',
+      'auth/invalid-credential': 'Invalid email or password.',
+    };
+    showError(msgs[e.code] || e.message);
+    btn.disabled = false;
+    btn.innerHTML = 'Sign In';
+  }
+}
+
+// Allow Enter key to submit
+document.addEventListener('keydown', e => {
+  if (e.key === 'Enter') signIn();
+});
+</script>
+</body>
+</html>
